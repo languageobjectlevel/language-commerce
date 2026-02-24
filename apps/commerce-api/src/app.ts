@@ -15,6 +15,7 @@ import { confirmOrder } from "@language-commerce/order";
 import { issueInvoice } from "@language-commerce/invoice";
 import { reconcilePayment } from "@language-commerce/payment";
 import { buildOperatorTaskRequest } from "@language-commerce/operator-bridge";
+import { commerceEvents, publishEvent, readOutbox } from "@language-commerce/events";
 import { hasFraudSignal } from "@language-commerce/security";
 import { gauge, increment, snapshot } from "@language-commerce/observability";
 
@@ -62,6 +63,13 @@ export function createCommerceApp() {
     opportunityAssessments.set(record.opportunityId, assessment);
     idempotencyIndex.set(idempotencyKey, { opportunityId: record.opportunityId });
     increment("commerce.opportunity.created.v1");
+    publishEvent({
+      id: `evt_${record.opportunityId}`,
+      name: commerceEvents.opportunityCreated,
+      emittedAt: new Date().toISOString(),
+      idempotencyKey,
+      payload: record
+    });
     return reply.code(201).send({ opportunityId: record.opportunityId, assessment });
   });
 
@@ -75,6 +83,12 @@ export function createCommerceApp() {
     const draft = generateProposal(opportunity);
     proposals.set(draft.proposalId, draft);
     increment("commerce.proposal.generated.v1");
+    publishEvent({
+      id: `evt_${draft.proposalId}`,
+      name: commerceEvents.proposalGenerated,
+      emittedAt: new Date().toISOString(),
+      payload: draft
+    });
     return reply.code(201).send({
       ...draft,
       pricingMode: body.pricingMode ?? "standard"
@@ -100,10 +114,22 @@ export function createCommerceApp() {
     orders.set(order.orderId, order);
     orderByProposal.set(body.proposalId, order.orderId);
     increment("commerce.order.confirmed.v1");
+    publishEvent({
+      id: `evt_${order.orderId}`,
+      name: commerceEvents.orderConfirmed,
+      emittedAt: new Date().toISOString(),
+      payload: order
+    });
 
     const operatorTask = buildOperatorTaskRequest(order);
     operatorTasks.set(operatorTask.requestId, operatorTask);
     increment("commerce.task.requested.v1");
+    publishEvent({
+      id: `evt_${operatorTask.requestId}`,
+      name: commerceEvents.taskRequested,
+      emittedAt: new Date().toISOString(),
+      payload: operatorTask
+    });
 
     return reply.code(201).send(order);
   });
@@ -127,6 +153,12 @@ export function createCommerceApp() {
     invoices.set(invoice.invoiceId, invoice);
     invoiceByOrder.set(body.orderId, invoice.invoiceId);
     increment("commerce.invoice.issued.v1");
+    publishEvent({
+      id: `evt_${invoice.invoiceId}`,
+      name: commerceEvents.invoiceIssued,
+      emittedAt: new Date().toISOString(),
+      payload: invoice
+    });
     return reply.code(201).send(invoice);
   });
 
@@ -154,6 +186,13 @@ export function createCommerceApp() {
     settlements.set(settlement.settlementId, settlement);
     paymentIdempotency.set(idempotencyKey, settlement.settlementId);
     increment("commerce.payment.settled.v1");
+    publishEvent({
+      id: `evt_${settlement.settlementId}`,
+      name: commerceEvents.paymentSettled,
+      emittedAt: new Date().toISOString(),
+      idempotencyKey,
+      payload: settlement
+    });
     return reply.code(201).send(settlement);
   });
 
@@ -182,6 +221,11 @@ export function createCommerceApp() {
   app.get("/v1/operator/tasks", async () => ({
     count: operatorTasks.size,
     items: Array.from(operatorTasks.values())
+  }));
+
+  app.get("/v1/events/outbox", async () => ({
+    count: readOutbox().length,
+    items: readOutbox()
   }));
 
   return app;

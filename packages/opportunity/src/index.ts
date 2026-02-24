@@ -24,7 +24,7 @@ export function assessOpportunity(candidate: OpportunityRecord): OpportunityAsse
   }
 
   const priority = candidate.valueCents >= 100_000_00 ? "high" : "normal";
-  const accepted = riskScore < 70;
+  const accepted = riskScore < 50;
 
   return {
     opportunityId: candidate.opportunityId,

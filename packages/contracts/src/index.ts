@@ -20,6 +20,8 @@ export type ProposalDraft = {
   opportunityId: string;
   lineItems: Array<{ description: string; quantity: number; unitPriceCents: number }>;
   totalCents: number;
+  discountCents: number;
+  validUntil: string;
   generatedAt: string;
 };
 

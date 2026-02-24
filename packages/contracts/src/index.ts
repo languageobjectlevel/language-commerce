@@ -50,6 +50,8 @@ export type PaymentSettlement = {
   invoiceId: string;
   paidCents: number;
   provider: "stripe" | "adyen" | "manual";
+  status: "settled" | "rejected";
+  sourceEventId: string;
   reconciledAt: string;
 };
 

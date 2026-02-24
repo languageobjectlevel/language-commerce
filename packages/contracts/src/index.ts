@@ -7,6 +7,14 @@ export type OpportunityRecord = {
   createdAt: string;
 };
 
+export type OpportunityAssessment = {
+  opportunityId: string;
+  riskScore: number;
+  priority: "low" | "normal" | "high";
+  accepted: boolean;
+  reason?: string;
+};
+
 export type ProposalDraft = {
   proposalId: string;
   opportunityId: string;

@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import type {
+  OpportunityAssessment,
   OpportunityRecord,
   PaymentSettlement,
   ProposalDraft,
@@ -7,7 +8,7 @@ import type {
   InvoiceRecord,
   RevenueSnapshot
 } from "@language-commerce/contracts";
-import { validateOpportunityInput } from "@language-commerce/opportunity";
+import { assessOpportunity, validateOpportunityInput } from "@language-commerce/opportunity";
 import { generateProposal } from "@language-commerce/proposal";
 import { confirmOrder } from "@language-commerce/order";
 import { issueInvoice } from "@language-commerce/invoice";
@@ -16,10 +17,12 @@ import { hasFraudSignal } from "@language-commerce/security";
 import { gauge, increment, snapshot } from "@language-commerce/observability";
 
 const opportunities = new Map<string, OpportunityRecord>();
+const opportunityAssessments = new Map<string, OpportunityAssessment>();
 const proposals = new Map<string, ProposalDraft>();
 const orders = new Map<string, OrderRecord>();
 const invoices = new Map<string, InvoiceRecord>();
 const settlements = new Map<string, PaymentSettlement>();
+const idempotencyIndex = new Map<string, { opportunityId: string }>();
 
 export function createCommerceApp() {
   const app = Fastify({ logger: false });
@@ -28,14 +31,32 @@ export function createCommerceApp() {
 
   app.post("/v1/opportunities/ingest", async (request, reply) => {
     const input = request.body as OpportunityRecord;
+    const idempotencyKey = request.headers["idempotency-key"]?.toString();
+    if (!idempotencyKey) {
+      return reply.code(400).send({ error: "idempotency-key header is required" });
+    }
+
+    const previous = idempotencyIndex.get(idempotencyKey);
+    if (previous) {
+      return reply.code(200).send({ opportunityId: previous.opportunityId, duplicate: true });
+    }
+
     if (hasFraudSignal(JSON.stringify(input))) {
       return reply.code(403).send({ error: "Opportunity rejected by anti-fraud rules" });
     }
 
     const record = validateOpportunityInput(input);
+    const assessment = assessOpportunity(record);
+    if (!assessment.accepted) {
+      increment("commerce.opportunity.denied.v1");
+      return reply.code(422).send({ error: assessment.reason ?? "Opportunity denied" });
+    }
+
     opportunities.set(record.opportunityId, record);
+    opportunityAssessments.set(record.opportunityId, assessment);
+    idempotencyIndex.set(idempotencyKey, { opportunityId: record.opportunityId });
     increment("commerce.opportunity.created.v1");
-    return reply.code(201).send({ opportunityId: record.opportunityId });
+    return reply.code(201).send({ opportunityId: record.opportunityId, assessment });
   });
 
   app.post("/v1/proposals", async (request, reply) => {

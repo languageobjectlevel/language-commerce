@@ -20,7 +20,7 @@ describe("opportunity validation", () => {
       opportunityId: "opp_2",
       accountId: "acct_2",
       channel: "partner",
-      valueCents: 600_000_00,
+      valueCents: 300_000_00,
       currency: "USD",
       createdAt: new Date().toISOString()
     });

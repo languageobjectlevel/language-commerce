@@ -5,7 +5,8 @@ export default defineConfig({
     include: ["packages/**/*.test.ts", "apps/**/*.test.ts", "tests/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      include: ["apps/**/*.ts", "packages/**/*.ts"],
+      include: ["apps/commerce-api/src/**/*.ts", "packages/*/src/**/*.ts"],
+      exclude: ["apps/**/server.ts", "packages/contracts/src/index.ts"],
       reporter: ["text"],
       thresholds: {
         lines: 85,

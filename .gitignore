@@ -6,3 +6,4 @@ sbom/
 *.log
 .env
 .env.*
+!sbom/.gitkeep

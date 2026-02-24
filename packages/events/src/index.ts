@@ -8,3 +8,25 @@ export const commerceEvents = {
 } as const;
 
 export type CommerceEventName = (typeof commerceEvents)[keyof typeof commerceEvents];
+
+export type EventEnvelope<TPayload> = {
+  id: string;
+  name: CommerceEventName;
+  emittedAt: string;
+  idempotencyKey?: string;
+  payload: TPayload;
+};
+
+const outbox: Array<EventEnvelope<unknown>> = [];
+
+export function publishEvent<TPayload>(event: EventEnvelope<TPayload>): void {
+  outbox.push(event as EventEnvelope<unknown>);
+}
+
+export function readOutbox(): Array<EventEnvelope<unknown>> {
+  return [...outbox];
+}
+
+export function clearOutbox(): void {
+  outbox.length = 0;
+}

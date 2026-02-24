@@ -49,7 +49,11 @@ export function createCommerceApp() {
 
   app.post("/v1/opportunities/ingest", async (request, reply) => {
     const input = request.body as OpportunityRecord;
-    enforceCurrencyAllowlist(input.currency);
+    try {
+      enforceCurrencyAllowlist(input.currency);
+    } catch (error) {
+      return reply.code(400).send({ error: (error as Error).message });
+    }
 
     const idempotencyKey = request.headers["idempotency-key"]?.toString();
     if (!idempotencyKey) {

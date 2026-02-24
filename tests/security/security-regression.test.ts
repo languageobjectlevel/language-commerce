@@ -27,7 +27,7 @@ describe("security regression", () => {
       }
     });
 
-    expect(response.statusCode).toBe(500);
+    expect(response.statusCode).toBe(400);
   });
 
   it("blocks fraud signals", async () => {

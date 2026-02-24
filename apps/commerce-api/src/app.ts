@@ -16,7 +16,7 @@ import { issueInvoice } from "@language-commerce/invoice";
 import { reconcilePayment } from "@language-commerce/payment";
 import { buildOperatorTaskRequest } from "@language-commerce/operator-bridge";
 import { commerceEvents, publishEvent, readOutbox } from "@language-commerce/events";
-import { hasFraudSignal } from "@language-commerce/security";
+import { enforceCurrencyAllowlist, hasFraudSignal, sanitizeFreeText, verifyWebhookSignature } from "@language-commerce/security";
 import { gauge, increment, snapshot } from "@language-commerce/observability";
 
 const opportunities = new Map<string, OpportunityRecord>();
@@ -38,6 +38,8 @@ export function createCommerceApp() {
 
   app.post("/v1/opportunities/ingest", async (request, reply) => {
     const input = request.body as OpportunityRecord;
+    enforceCurrencyAllowlist(input.currency);
+
     const idempotencyKey = request.headers["idempotency-key"]?.toString();
     if (!idempotencyKey) {
       return reply.code(400).send({ error: "idempotency-key header is required" });
@@ -48,11 +50,12 @@ export function createCommerceApp() {
       return reply.code(200).send({ opportunityId: previous.opportunityId, duplicate: true });
     }
 
-    if (hasFraudSignal(JSON.stringify(input))) {
+    const normalizedInput = { ...input, accountId: sanitizeFreeText(input.accountId) };
+    if (hasFraudSignal(JSON.stringify(normalizedInput))) {
       return reply.code(403).send({ error: "Opportunity rejected by anti-fraud rules" });
     }
 
-    const record = validateOpportunityInput(input);
+    const record = validateOpportunityInput(normalizedInput);
     const assessment = assessOpportunity(record);
     if (!assessment.accepted) {
       increment("commerce.opportunity.denied.v1");
@@ -194,6 +197,20 @@ export function createCommerceApp() {
       payload: settlement
     });
     return reply.code(201).send(settlement);
+  });
+
+  app.post("/v1/payments/webhook/verify", async (request, reply) => {
+    const body = request.body as { payload: string; signature: string };
+    const sharedSecret = process.env.WEBHOOK_SHARED_SECRET ?? "local-dev-secret";
+
+    const valid = verifyWebhookSignature(sharedSecret, body.payload, body.signature);
+    if (!valid) {
+      increment("commerce.security.webhook.rejected.v1");
+      return reply.code(401).send({ valid: false });
+    }
+
+    increment("commerce.security.webhook.accepted.v1");
+    return reply.code(200).send({ valid: true });
   });
 
   app.get("/v1/revenue/metrics", async (): Promise<RevenueSnapshot> => {

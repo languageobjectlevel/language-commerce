@@ -17,3 +17,5 @@
 - Idempotency keys on money movement endpoints.
 - Signed webhook validation.
 - Immutable audit trail with request ids.
+
+- Currency allowlist and webhook signature validation on ingestion and payment callbacks.

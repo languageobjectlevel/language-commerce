@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 const riskyWords = ["launder", "stolen", "fraud", "chargeback ring"];
+const allowedCurrencies = new Set(["USD", "EUR", "GBP"]);
 
 export function hasFraudSignal(input: string): boolean {
   const lower = input.toLowerCase();
@@ -17,4 +18,15 @@ export function verifyWebhookSignature(secret: string, body: string, signature: 
   }
 
   return timingSafeEqual(left, right);
+}
+
+export function enforceCurrencyAllowlist(currency: string): void {
+  if (!allowedCurrencies.has(currency)) {
+    throw new Error(`Currency ${currency} is not allowed`);
+  }
+}
+
+export function sanitizeFreeText(input: string): string {
+  const withoutControlChars = input.replace(/[\x00-\x1f\x7f]/g, "");
+  return withoutControlChars.slice(0, 1024);
 }

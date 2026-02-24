@@ -39,3 +39,18 @@ channels:
       requested:
         payload:
           type: object
+          required:
+            - requestId
+            - source
+            - correlationId
+            - payload
+          properties:
+            requestId:
+              type: string
+            source:
+              type: string
+              enum: [language-commerce]
+            correlationId:
+              type: string
+            payload:
+              type: object

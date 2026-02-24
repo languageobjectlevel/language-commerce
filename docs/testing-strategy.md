@@ -11,3 +11,5 @@
 
 - Line coverage >= 85%
 - Branch coverage >= 80%
+
+- Opportunity pipeline tests include idempotency and risk thresholds.

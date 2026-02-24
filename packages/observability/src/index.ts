@@ -6,7 +6,7 @@ export type LogRecord = {
   metadata?: Record<string, unknown>;
 };
 
-const counters: CounterMap = Object.create(null);
+const counters: CounterMap = {};
 const logs: LogRecord[] = [];
 
 export function increment(metric: string): void {

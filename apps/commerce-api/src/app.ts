@@ -34,7 +34,7 @@ const paymentIdempotency = new Map<string, string>();
 export function createCommerceApp() {
   const app = Fastify({ logger: false });
 
-  app.addHook("onRequest", async (request) => {
+  app.addHook("onRequest", (request, _reply, done) => {
     const requestId = request.headers["x-request-id"]?.toString() ?? `req_${Date.now()}`;
     request.headers["x-request-id"] = requestId;
     log({
@@ -42,6 +42,7 @@ export function createCommerceApp() {
       event: "http.request.received",
       metadata: { method: request.method, url: request.url, requestId }
     });
+    done();
   });
 
   app.get("/v1/health/liveness", async () => ({ status: "ok" }));

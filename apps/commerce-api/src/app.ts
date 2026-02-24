@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import type {
   OpportunityAssessment,
+  OperatorTaskRequest,
   OpportunityRecord,
   PaymentSettlement,
   ProposalDraft,
@@ -13,6 +14,7 @@ import { generateProposal } from "@language-commerce/proposal";
 import { confirmOrder } from "@language-commerce/order";
 import { issueInvoice } from "@language-commerce/invoice";
 import { reconcilePayment } from "@language-commerce/payment";
+import { buildOperatorTaskRequest } from "@language-commerce/operator-bridge";
 import { hasFraudSignal } from "@language-commerce/security";
 import { gauge, increment, snapshot } from "@language-commerce/observability";
 
@@ -24,6 +26,7 @@ const orderByProposal = new Map<string, string>();
 const invoices = new Map<string, InvoiceRecord>();
 const invoiceByOrder = new Map<string, string>();
 const settlements = new Map<string, PaymentSettlement>();
+const operatorTasks = new Map<string, OperatorTaskRequest>();
 const idempotencyIndex = new Map<string, { opportunityId: string }>();
 const paymentIdempotency = new Map<string, string>();
 
@@ -97,6 +100,11 @@ export function createCommerceApp() {
     orders.set(order.orderId, order);
     orderByProposal.set(body.proposalId, order.orderId);
     increment("commerce.order.confirmed.v1");
+
+    const operatorTask = buildOperatorTaskRequest(order);
+    operatorTasks.set(operatorTask.requestId, operatorTask);
+    increment("commerce.task.requested.v1");
+
     return reply.code(201).send(order);
   });
 
@@ -170,6 +178,11 @@ export function createCommerceApp() {
   });
 
   app.get("/v1/metrics", async () => snapshot());
+
+  app.get("/v1/operator/tasks", async () => ({
+    count: operatorTasks.size,
+    items: Array.from(operatorTasks.values())
+  }));
 
   return app;
 }

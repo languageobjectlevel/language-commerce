@@ -62,3 +62,12 @@ export type RevenueSnapshot = {
   unsettledCents: number;
   outstandingInvoices: number;
 };
+
+export type OperatorTaskRequest = {
+  requestId: string;
+  taskType: "fulfillment" | "compliance" | "settlement";
+  source: "language-commerce";
+  correlationId: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+};

@@ -20,6 +20,7 @@ const opportunities = new Map<string, OpportunityRecord>();
 const opportunityAssessments = new Map<string, OpportunityAssessment>();
 const proposals = new Map<string, ProposalDraft>();
 const orders = new Map<string, OrderRecord>();
+const orderByProposal = new Map<string, string>();
 const invoices = new Map<string, InvoiceRecord>();
 const settlements = new Map<string, PaymentSettlement>();
 const idempotencyIndex = new Map<string, { opportunityId: string }>();
@@ -82,8 +83,17 @@ export function createCommerceApp() {
       return reply.code(404).send({ error: "Proposal not found" });
     }
 
+    const existingOrderId = orderByProposal.get(body.proposalId);
+    if (existingOrderId) {
+      const existingOrder = orders.get(existingOrderId);
+      if (existingOrder) {
+        return reply.code(200).send({ ...existingOrder, duplicate: true });
+      }
+    }
+
     const order = confirmOrder(proposal, body.customerId);
     orders.set(order.orderId, order);
+    orderByProposal.set(body.proposalId, order.orderId);
     increment("commerce.order.confirmed.v1");
     return reply.code(201).send(order);
   });

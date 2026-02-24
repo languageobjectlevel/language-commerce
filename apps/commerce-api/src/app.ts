@@ -22,6 +22,7 @@ const proposals = new Map<string, ProposalDraft>();
 const orders = new Map<string, OrderRecord>();
 const orderByProposal = new Map<string, string>();
 const invoices = new Map<string, InvoiceRecord>();
+const invoiceByOrder = new Map<string, string>();
 const settlements = new Map<string, PaymentSettlement>();
 const idempotencyIndex = new Map<string, { opportunityId: string }>();
 
@@ -105,8 +106,17 @@ export function createCommerceApp() {
       return reply.code(404).send({ error: "Order not found" });
     }
 
+    const existingInvoiceId = invoiceByOrder.get(body.orderId);
+    if (existingInvoiceId) {
+      const existingInvoice = invoices.get(existingInvoiceId);
+      if (existingInvoice) {
+        return reply.code(200).send({ ...existingInvoice, duplicate: true });
+      }
+    }
+
     const invoice = issueInvoice(order, body.dueDays ?? 30);
     invoices.set(invoice.invoiceId, invoice);
+    invoiceByOrder.set(body.orderId, invoice.invoiceId);
     increment("commerce.invoice.issued.v1");
     return reply.code(201).send(invoice);
   });

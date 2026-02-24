@@ -60,7 +60,7 @@ export function createCommerceApp() {
   });
 
   app.post("/v1/proposals", async (request, reply) => {
-    const body = request.body as { opportunityId: string };
+    const body = request.body as { opportunityId: string; pricingMode?: "standard" | "expedite" };
     const opportunity = opportunities.get(body.opportunityId);
     if (!opportunity) {
       return reply.code(404).send({ error: "Opportunity not found" });
@@ -69,7 +69,10 @@ export function createCommerceApp() {
     const draft = generateProposal(opportunity);
     proposals.set(draft.proposalId, draft);
     increment("commerce.proposal.generated.v1");
-    return reply.code(201).send(draft);
+    return reply.code(201).send({
+      ...draft,
+      pricingMode: body.pricingMode ?? "standard"
+    });
   });
 
   app.post("/v1/orders", async (request, reply) => {

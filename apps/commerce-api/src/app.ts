@@ -17,7 +17,7 @@ import { reconcilePayment } from "@language-commerce/payment";
 import { buildOperatorTaskRequest } from "@language-commerce/operator-bridge";
 import { commerceEvents, publishEvent, readOutbox } from "@language-commerce/events";
 import { enforceCurrencyAllowlist, hasFraudSignal, sanitizeFreeText, verifyWebhookSignature } from "@language-commerce/security";
-import { gauge, increment, snapshot } from "@language-commerce/observability";
+import { gauge, increment, log, readLogs, snapshot } from "@language-commerce/observability";
 
 const opportunities = new Map<string, OpportunityRecord>();
 const opportunityAssessments = new Map<string, OpportunityAssessment>();
@@ -33,6 +33,16 @@ const paymentIdempotency = new Map<string, string>();
 
 export function createCommerceApp() {
   const app = Fastify({ logger: false });
+
+  app.addHook("onRequest", async (request) => {
+    const requestId = request.headers["x-request-id"]?.toString() ?? `req_${Date.now()}`;
+    request.headers["x-request-id"] = requestId;
+    log({
+      level: "info",
+      event: "http.request.received",
+      metadata: { method: request.method, url: request.url, requestId }
+    });
+  });
 
   app.get("/v1/health/liveness", async () => ({ status: "ok" }));
 
@@ -243,6 +253,11 @@ export function createCommerceApp() {
   app.get("/v1/events/outbox", async () => ({
     count: readOutbox().length,
     items: readOutbox()
+  }));
+
+  app.get("/v1/observability/logs", async () => ({
+    count: readLogs().length,
+    items: readLogs()
   }));
 
   return app;

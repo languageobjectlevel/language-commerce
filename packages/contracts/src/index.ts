@@ -37,8 +37,10 @@ export type OrderRecord = {
 
 export type InvoiceRecord = {
   invoiceId: string;
+  invoiceNumber: string;
   orderId: string;
   amountDueCents: number;
+  status: "issued" | "paid" | "void";
   dueDate: string;
   issuedAt: string;
 };

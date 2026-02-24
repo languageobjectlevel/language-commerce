@@ -30,8 +30,9 @@ export type OrderRecord = {
   proposalId: string;
   customerId: string;
   amountCents: number;
-  status: "confirmed" | "cancelled";
+  status: "draft" | "confirmed" | "cancelled";
   createdAt: string;
+  updatedAt: string;
 };
 
 export type InvoiceRecord = {

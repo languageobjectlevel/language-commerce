@@ -25,6 +25,7 @@ const invoices = new Map<string, InvoiceRecord>();
 const invoiceByOrder = new Map<string, string>();
 const settlements = new Map<string, PaymentSettlement>();
 const idempotencyIndex = new Map<string, { opportunityId: string }>();
+const paymentIdempotency = new Map<string, string>();
 
 export function createCommerceApp() {
   const app = Fastify({ logger: false });
@@ -123,13 +124,27 @@ export function createCommerceApp() {
 
   app.post("/v1/payments/reconcile", async (request, reply) => {
     const body = request.body as { invoiceId: string; paidCents: number };
+    const idempotencyKey = request.headers["idempotency-key"]?.toString();
+    if (!idempotencyKey) {
+      return reply.code(400).send({ error: "idempotency-key header is required" });
+    }
+
+    const previousSettlementId = paymentIdempotency.get(idempotencyKey);
+    if (previousSettlementId) {
+      const existing = settlements.get(previousSettlementId);
+      if (existing) {
+        return reply.code(200).send({ ...existing, duplicate: true });
+      }
+    }
+
     const invoice = invoices.get(body.invoiceId);
     if (!invoice) {
       return reply.code(404).send({ error: "Invoice not found" });
     }
 
-    const settlement = reconcilePayment(invoice, body.paidCents);
+    const settlement = reconcilePayment(invoice, body.paidCents, idempotencyKey);
     settlements.set(settlement.settlementId, settlement);
+    paymentIdempotency.set(idempotencyKey, settlement.settlementId);
     increment("commerce.payment.settled.v1");
     return reply.code(201).send(settlement);
   });

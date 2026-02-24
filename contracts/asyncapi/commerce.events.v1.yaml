@@ -1,0 +1,56 @@
+asyncapi: 3.0.0
+info:
+  title: Language Commerce Events
+  version: 1.0.0
+channels:
+  commerce.opportunity.created.v1:
+    address: commerce.opportunity.created.v1
+    messages:
+      created:
+        payload:
+          type: object
+  commerce.proposal.generated.v1:
+    address: commerce.proposal.generated.v1
+    messages:
+      generated:
+        payload:
+          type: object
+  commerce.order.confirmed.v1:
+    address: commerce.order.confirmed.v1
+    messages:
+      confirmed:
+        payload:
+          type: object
+  commerce.invoice.issued.v1:
+    address: commerce.invoice.issued.v1
+    messages:
+      issued:
+        payload:
+          type: object
+  commerce.payment.settled.v1:
+    address: commerce.payment.settled.v1
+    messages:
+      settled:
+        payload:
+          type: object
+  commerce.task.requested.v1:
+    address: commerce.task.requested.v1
+    messages:
+      requested:
+        payload:
+          type: object
+          required:
+            - requestId
+            - source
+            - correlationId
+            - payload
+          properties:
+            requestId:
+              type: string
+            source:
+              type: string
+              enum: [language-commerce]
+            correlationId:
+              type: string
+            payload:
+              type: object

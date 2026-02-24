@@ -1,0 +1,44 @@
+openapi: 3.1.0
+info:
+  title: Language Commerce API
+  version: 1.0.0
+  description: Revenue and transaction engine API.
+servers:
+  - url: https://commerce.languageobjectlevel.com
+paths:
+  /v1/opportunities/ingest:
+    post:
+      summary: Ingest opportunity
+      responses:
+        "201":
+          description: Opportunity accepted
+  /v1/proposals:
+    post:
+      summary: Generate proposal
+      responses:
+        "201":
+          description: Proposal generated
+  /v1/orders:
+    post:
+      summary: Create order
+      responses:
+        "201":
+          description: Order confirmed
+  /v1/invoices:
+    post:
+      summary: Issue invoice
+      responses:
+        "201":
+          description: Invoice issued
+  /v1/payments/reconcile:
+    post:
+      summary: Reconcile payment
+      responses:
+        "201":
+          description: Payment settled
+  /v1/revenue/metrics:
+    get:
+      summary: Get revenue metrics
+      responses:
+        "200":
+          description: Revenue snapshot

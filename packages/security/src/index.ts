@@ -27,6 +27,11 @@ export function enforceCurrencyAllowlist(currency: string): void {
 }
 
 export function sanitizeFreeText(input: string): string {
-  const withoutControlChars = input.replace(/[\x00-\x1f\x7f]/g, "");
+  const withoutControlChars = Array.from(input)
+    .filter((character) => {
+      const code = character.charCodeAt(0);
+      return code >= 32 && code !== 127;
+    })
+    .join("");
   return withoutControlChars.slice(0, 1024);
 }
